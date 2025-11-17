@@ -29,77 +29,118 @@ function findColumnIndex(headers: string[], mapping: ColumnMapping): number | nu
 }
 
 async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
-    console.log(`Scraping: ${config.url}`);
-    const html = await fetchHtml(config.url);
-    const $ = cheerio.load(html);
+    const allRows: ScrapedRow[] = [];
+    let currentUrl: string = config.url;
+    let page = 1;
 
-    const table = $(config.tableSelector);
-    if (!table.length) {
-        throw new Error(`Table not found with selector: ${config.tableSelector}`);
-    }
+    while (true) {
+        console.log(`Scraping page ${page}: ${currentUrl}`);
+        const html = await fetchHtml(currentUrl);
+        const $ = cheerio.load(html);
 
-    const rows = table.find('tr').toArray();
-    if (rows.length === 0) return [];
-
-    let startRow = config.skipRows || 0;
-    let headerRow: string[] = [];
-
-    // Extract headers if present
-    if (config.hasHeader && startRow < rows.length) {
-        headerRow = $(rows[startRow])
-            .find('th, td')
-            .map((_, el) => normalize($(el).text()))
-            .get();
-        startRow++;
-    } else {
-        // Generate fallback headers from column count
-        const maxCols = Math.max(...rows.slice(startRow).map(row => $(row).find('td, th').length));
-        headerRow = Array.from({ length: maxCols }, (_, i) => `col${i}`);
-    }
-
-    // Resolve column indices
-    const columnIndices = config.columns.map(col => {
-        const idx = findColumnIndex(headerRow, col);
-        if (idx === null) {
-            console.warn(`Warning: Column not found:`, col);
+        const table = $(config.tableSelector);
+        if (!table.length) {
+            console.warn(`Table not found on page ${page}, stopping.`);
+            break;
         }
-        return { ...col, index: idx };
-    }).filter(col => col.index !== null) as (ColumnMapping & { index: number })[];
 
-    const results: ScrapedRow[] = [];
+        // === Extract rows (same logic as before) ===
+        const rows = table.find('tr').toArray();
+        if (rows.length === 0) break;
 
-    for (let i = startRow; i < rows.length; i++) {
-        const tds = $(rows[i]).find('td, th').toArray();
-        if (tds.length === 0) continue;
+        let startRow = config.skipRows || 0;
+        let headerRow: string[] = [];
 
-        const row: ScrapedRow = {};
+        if (config.hasHeader && startRow < rows.length) {
+            headerRow = $(rows[startRow])
+                .find('th, td')
+                .map((_, el) => normalize($(el).text()))
+                .get();
+            startRow++;
+        } else {
+            // Generate fallback headers from column count
+            const maxCols = Math.max(...rows.slice(startRow).map(r => $(r).find('td, th').length));
+            headerRow = Array.from({ length: maxCols }, (_, i) => `col${i}`);
+        }
 
-        for (const col of columnIndices) {
-            const cell = tds[col.index];
-            let value = cell ? $(cell).text() : '';
+        // Resolve column indices
+        const columnIndices = config.columns
+            .map(col => ({ ...col, index: findColumnIndex(headerRow, col) }))
+            .filter(col => col.index !== null) as (ColumnMapping & { index: number })[];
 
-            let transformed = normalize(value);
-
-            if (col.transform && TRANSFORMS[col.transform]) {
-                try {
-                    transformed = TRANSFORMS[col.transform](value);
-                } catch (e) {
-                    transformed = value; // fallback
+        // Warn on missing columns (once per site)
+        if (page === 1) {
+            for (const col of config.columns) {
+                if (!columnIndices.some(c => c.key === col.key)) {
+                    console.warn(`Column not found:`, col.header ?? col.index);
                 }
-            } else if (col.transform) {
-                console.warn(`Unknown transform: ${col.transform}`);
+            }
+        }
+
+        // === Extract data rows ===
+        for (let i = startRow; i < rows.length; i++) {
+            const tds = $(rows[i]).find('td, th').toArray();
+            if (tds.length === 0) continue;
+
+            const row: ScrapedRow = {};
+            for (const col of columnIndices) {
+                const cell = tds[col.index];
+                const value = cell ? $(cell).text() : '';
+                let transformed = normalize(value);
+
+                if (col.transform) {
+                    const fn = TRANSFORMS[col.transform];
+                    if (fn) {
+                        try { transformed = fn(value); }
+                        catch { transformed = value; }
+                    }
+                }
+                row[col.key] = transformed;
             }
 
-            row[col.key] = transformed;
+            if (Object.values(row).some(v => v !== '' && v !== null)) {
+                allRows.push(row);
+            }
         }
 
-        // Only add row if it has data
-        if (Object.values(row).some(v => v !== '' && v !== null)) {
-            results.push(row);
+        // === Pagination: Find next page ===
+        if (!config.pagination) break;
+
+        const nextLink = $(config.pagination.nextPageSelector).first();
+        if (!nextLink.length) {
+            console.log(`No next page found (selector: ${config.pagination.nextPageSelector})`);
+            break;
         }
+
+        const hrefAttr = config.pagination.hrefAttr || 'href';
+        let nextHref = nextLink.attr(hrefAttr);
+        if (!nextHref) {
+            console.log(`Next link has no ${hrefAttr} attribute`);
+            break;
+        }
+
+        // Resolve relative URLs
+        try {
+            const baseUrl = new URL(currentUrl);
+            nextHref = new URL(nextHref, baseUrl).href;
+        } catch (e) {
+            console.warn(`Invalid next URL: ${nextHref}`);
+            break;
+        }
+
+        if (nextHref === currentUrl) {
+            console.log(`Next URL same as current – avoiding loop`);
+            break;
+        }
+
+        currentUrl = nextHref;
+        page++;
+
+        // Optional: delay to be polite
+        await new Promise(r => setTimeout(r, 500));
     }
 
-    return results;
+    return allRows;
 }
 
 export { scrapeSite };

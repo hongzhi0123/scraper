@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Site 1 - Data Table</title>
+    <style>
+        table.data-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table.data-table th,
+        table.data-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table.data-table th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>User Directory</h1>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>Country</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Maria Gonzalez</td>
+                <td>34</td>
+                <td>24 Calle Mayor</td>
+                <td>Madrid</td>
+                <td>Spain</td>
+            </tr>
+            <tr>
+                <td>James Wilson</td>
+                <td>56</td>
+                <td>156 Maple Street</td>
+                <td>Toronto</td>
+                <td>Canada</td>
+            </tr>
+            <tr>
+                <td>Yuki Tanaka</td>
+                <td>28</td>
+                <td>89 Sakura Avenue</td>
+                <td>Tokyo</td>
+                <td>Japan</td>
+            </tr>
+            <tr>
+                <td>Sophie Martin</td>
+                <td>42</td>
+                <td>7 Rue de la Paix</td>
+                <td>Paris</td>
+                <td>France</td>
+            </tr>
+            <tr>
+                <td>Ahmed Hassan</td>
+                <td>31</td>
+                <td>312 Nile Road</td>
+                <td>Cairo</td>
+                <td>Egypt</td>
+            </tr>
+        </tbody>
+    </table>
+    <ul class="navpage">
+        <li>Page 2/3</li>
+        <li>
+            <span class="separator">:</span>
+            <span></span>
+        </li>
+        <li>
+            <span>-</span>
+            <a href="site1_p1.html">&lt; Previous page</a>
+        </li>
+        <li>
+            <span class="separator">|</span>
+            <a href="site1_p1.html">1</a>
+        </li>
+        <li>
+            <span class="active">2</span>
+        </li>
+        <li>
+            <span class="separator">|</span>
+            <a href="site1_p3.html">3</a>
+        </li>
+        <li>
+            <span>-</span>
+            <a href="site1_p3.html">Next page &gt;</a>
+        </li>        
+    </ul>
+</body>
+
+</html>

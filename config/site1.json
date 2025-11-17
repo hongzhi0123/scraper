@@ -1,12 +1,28 @@
 {
-  "url": "http://127.0.0.1:5500/sites/site1.html",
-  "tableSelector": "table.data-table",
-  "hasHeader": true,
-  "skipRows": 0,
-  "columns": [
-    { "header": "Name", "key": "name" },
-    { "header": "Age", "key": "age", "transform": "parseInt" },
-    { "header": "City", "key": "city" },
-    { "header": "Country", "key": "country" }
-  ]
+    "url": "http://127.0.0.1:5500/sites/site1_p1.html",
+    "tableSelector": "table.data-table",
+    "hasHeader": true,
+    "skipRows": 0,
+    "columns": [
+        {
+            "header": "Name",
+            "key": "name"
+        },
+        {
+            "header": "Age",
+            "key": "age",
+            "transform": "parseInt"
+        },
+        {
+            "header": "City",
+            "key": "city"
+        },
+        {
+            "header": "Country",
+            "key": "country"
+        }
+    ],
+    "pagination": {
+        "nextPageSelector": "a:contains('Next page')"
+    }
 }
