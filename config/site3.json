@@ -43,8 +43,7 @@
                             },
                             "columns": [
                                 {
-                                    "index": -1,
-                                    "key": "service"
+                                    "index": -1
                                 }
                             ]
                         }

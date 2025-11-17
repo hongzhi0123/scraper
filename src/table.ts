@@ -1,9 +1,9 @@
 import * as cheerio from 'cheerio';
-import { ColumnMapping, TransformName, RowFilter, TRANSFORMS, TableConfig, ScrapedRow } from './types.js';
+import { ColumnMapping, TransformName, RowFilter, TRANSFORMS, TableConfig, ScrapedRow, ScrapedObj } from './types.js';
 import { findColumnIndex, normalize } from './utils.js';
 
 // parse a table from a cheerio instance, return plain data rows
-export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, baseUrl?: string): Promise<ScrapedRow[]> {
+export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, baseUrl?: string): Promise<ScrapedObj[]> {
     const table = $(config.tableSelector);
     if (!table.length) return [];
 
@@ -46,11 +46,14 @@ export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, bas
     }
 
     // === Extract data ===
-    const dataRows: ScrapedRow[] = [];
+    const dataRows: ScrapedObj[] = [];
 
     for (const row of tableRows) {
         const cells = $(row).find('td, th').toArray();
-        const dataRow: ScrapedRow = {};
+
+        // If there's exactly one resolved column and it has no key, use array-form row
+        const singleItemNoKey = columnIndices.length === 1 && (columnIndices[0].key === undefined || columnIndices[0].key === '');
+        let dataRow: ScrapedObj = {};
 
         for (const col of columnIndices) {
             let cellIndex = col.index;
@@ -80,7 +83,14 @@ export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, bas
                 try { value = TRANSFORMS[col.transform](value); } catch { }
             }
 
-            dataRow[col.key] = value;
+            // assign: for array-form rows push into array, otherwise use key
+            if (singleItemNoKey) {
+                dataRow = value;
+            } else {
+                // col.key should exist here; fallback to index string if not
+                const key = (col.key === undefined || col.key === '') ? String(cellIndex) : col.key;
+                (dataRow as ScrapedRow)[key] = value;
+            }
         }
 
         if (Object.values(dataRow).some(v => v !== '' && v !== null)) {

@@ -57,6 +57,9 @@ export interface SiteConfig {
     page: PageConfig;
 }
 
-export interface ScrapedRow {
+export type ScrapedRow = {
     [key: string]: any;
-}
+} 
+
+// ScrapedObj can be either a ScrapedRow (normal case) or a plain object
+export type ScrapedObj = ScrapedRow | any;
