@@ -1,146 +1,98 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { SiteConfig, ScrapedRow, ColumnMapping, TRANSFORMS } from './types.js';
+import { SiteConfig, ScrapedRow, ColumnMapping, TRANSFORMS, TableConfig } from './types.js';
+import { parseTable } from './table.js';
+import { fetchDetail } from './detail.js';
+import { fetchHtml } from './utils.js';
 
 const __dirname = import.meta.dirname;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Ignore TLS errors
 
-async function fetchHtml(url: string): Promise<string> {
-    const response = await axios.get(url, {
-        timeout: 10000,
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-    });
-    return response.data;
-}
-
-function normalize(text: string): string {
-    return text.replace(/\s+/g, ' ').trim();
-}
-
-function findColumnIndex(headers: string[], mapping: ColumnMapping): number | null {
-    if (mapping.index !== undefined) return mapping.index;
-    if (mapping.header !== undefined) {
-        const normHeader = normalize(mapping.header);
-        for (let i = 0; i < headers.length; i++) {
-            if (normalize(headers[i]) === normHeader) return i;
-        }
-    }
-    return null;
-}
-
 async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
     const allRows: ScrapedRow[] = [];
-    let currentUrl: string = config.url;
+    let currentUrl: string | null = config.url;
     let page = 1;
 
-    while (true) {
+    while (currentUrl) {
         console.log(`Scraping page ${page}: ${currentUrl}`);
-        const html = await fetchHtml(currentUrl);
+
+        let html: string;
+        try {
+            html = await fetchHtml(currentUrl);
+        } catch (err: any) {
+            console.error(`Failed to fetch ${currentUrl}:`, err?.message ?? err);
+            break;
+        }
         const $ = cheerio.load(html);
 
-        const table = $(config.tableSelector);
-        if (!table.length) {
-            console.warn(`Table not found on page ${page}, stopping.`);
-            break;
-        }
+        const table = config.page.tables[0]; // assuming single table for main page
+        // parse main page table rows
+        const pageRows = await parseTable($, table.config, currentUrl);
+        // append main page rows
+        allRows.push(...pageRows);
 
-        // === Extract rows (same logic as before) ===
-        const rows = table.find('tr').toArray();
-        if (rows.length === 0) break;
-
-        let startRow = config.skipRows || 0;
-        let headerRow: string[] = [];
-
-        if (config.hasHeader && startRow < rows.length) {
-            headerRow = $(rows[startRow])
-                .find('th, td')
-                .map((_, el) => normalize($(el).text()))
-                .get();
-            startRow++;
-        } else {
-            // Generate fallback headers from column count
-            const maxCols = Math.max(...rows.slice(startRow).map(r => $(r).find('td, th').length));
-            headerRow = Array.from({ length: maxCols }, (_, i) => `col${i}`);
-        }
-
-        // Resolve column indices
-        const columnIndices = config.columns
-            .map(col => ({ ...col, index: findColumnIndex(headerRow, col) }))
-            .filter(col => col.index !== null) as (ColumnMapping & { index: number })[];
-
-        // Warn on missing columns (once per site)
-        if (page === 1) {
-            for (const col of config.columns) {
-                if (!columnIndices.some(c => c.key === col.key)) {
-                    console.warn(`Column not found:`, col.header ?? col.index);
-                }
-            }
-        }
-
-        // === Extract data rows ===
-        for (let i = startRow; i < rows.length; i++) {
-            const tds = $(rows[i]).find('td, th').toArray();
-            if (tds.length === 0) continue;
-
-            const row: ScrapedRow = {};
-            for (const col of columnIndices) {
-                const cell = tds[col.index];
-                const value = cell ? $(cell).text() : '';
-                let transformed = normalize(value);
-
-                if (col.transform) {
-                    const fn = TRANSFORMS[col.transform];
-                    if (fn) {
-                        try { transformed = fn(value); }
-                        catch { transformed = value; }
+        // For each row with a detailUrl, fetch the detail page and attach details
+        // You may want to do this with a concurrency limit (see note below)
+        if (table.config.detail) {
+            for (const dataRow of pageRows) {
+                if (dataRow.detailUrl) {
+                    try {
+                        const detailObj = await fetchDetail(dataRow.detailUrl, table.config.detail);
+                        // attach under `details` or merge fields directly—choose one
+                        // Option A: keep association
+                        dataRow.details = detailObj;
+                        // Option B: merge fields into row (be careful with collisions)
+                        // Object.assign(dataRow, detailObj);
+                    } catch (err: any) {
+                        // handle or log; keep going
+                        console.warn('Failed to fetch detail for', dataRow.detailUrl, err?.message ?? err);
+                        dataRow.details = [];
                     }
                 }
-                row[col.key] = transformed;
-            }
-
-            if (Object.values(row).some(v => v !== '' && v !== null)) {
-                allRows.push(row);
             }
         }
 
-        // === Pagination: Find next page ===
-        if (!config.pagination) break;
+        if (table.pagination) {
+            const nextPageUrl = getNextPageUrl($, table.pagination.nextPageSelector, currentUrl);
 
-        const nextLink = $(config.pagination.nextPageSelector).first();
-        if (!nextLink.length) {
-            console.log(`No next page found (selector: ${config.pagination.nextPageSelector})`);
-            break;
+            if (!nextPageUrl) break;
+
+            currentUrl = nextPageUrl;
+            page++;
         }
-
-        const hrefAttr = config.pagination.hrefAttr || 'href';
-        let nextHref = nextLink.attr(hrefAttr);
-        if (!nextHref) {
-            console.log(`Next link has no ${hrefAttr} attribute`);
-            break;
-        }
-
-        // Resolve relative URLs
-        try {
-            const baseUrl = new URL(currentUrl);
-            nextHref = new URL(nextHref, baseUrl).href;
-        } catch (e) {
-            console.warn(`Invalid next URL: ${nextHref}`);
-            break;
-        }
-
-        if (nextHref === currentUrl) {
-            console.log(`Next URL same as current – avoiding loop`);
-            break;
-        }
-
-        currentUrl = nextHref;
-        page++;
-
-        // Optional: delay to be polite
-        await new Promise(r => setTimeout(r, 500));
     }
 
     return allRows;
+}
+
+function getNextPageUrl($: cheerio.CheerioAPI, nextPageSelector: string, baseUrl: string): string | undefined {
+    let nextPageUrl: string | undefined = undefined;
+
+    const nextPageLink = $(nextPageSelector).first();
+    if (nextPageLink.length) {
+        nextPageUrl = nextPageLink.attr('href');
+        if (nextPageUrl) {
+            // Resolve relative URLs
+            try {
+                nextPageUrl = new URL(nextPageUrl, baseUrl).toString();
+            } catch (e) {
+                console.warn(`Invalid next URL: ${nextPageUrl}`);
+                throw e;
+            }
+
+            if (nextPageUrl !== baseUrl) {
+                return nextPageUrl;
+            } else {
+                console.log(`Next URL same as current – avoiding loop`);
+            }
+        } else {
+            console.log(`Next page link does not have attribute ${nextPageUrl}`);
+        }
+    } else {
+        console.log(`No next page found (selector: ${nextPageSelector})`);
+    }
+
+    return undefined;
 }
 
 export { scrapeSite };

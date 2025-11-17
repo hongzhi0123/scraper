@@ -13,6 +13,7 @@ export interface ColumnMapping {
     index?: number;      // Or match by column index (0-based)
     key: string;         // Output JSON key
     transform?: TransformName; // ← Restrict to valid transform names (value: string) => any; // Optional transform
+    detailLink?: boolean; // Whether this column contains the detail page link
 }
 
 export interface PaginationConfig {
@@ -26,15 +27,34 @@ export interface PaginationConfig {
     hrefAttr?: string;
 }
 
+export interface RowFilter {
+    selector: string;     // CSS selector relative to <tr>
+    attr: string;         // e.g. "alt", "class", "data-*"
+    value: string;        // exact match
+}
+
+export interface TableConfig {
+    tableSelector: string;
+    hasHeader?: boolean;
+    skipRows?: number;
+    columns: ColumnMapping[];
+    rowFilter?: RowFilter;
+    detail?: PageConfig;
+    
+}
+
+export interface PageConfig {
+    fields: { key: string; selector: string; attr?: string; transform?: TransformName }[];
+    tables: {
+        key: string;
+        config: TableConfig;
+        pagination?: PaginationConfig;
+    }[]
+}
+
 export interface SiteConfig {
     url: string;
-    tableSelector: string; // CSS selector for the table
-    hasHeader: boolean;    // Does the first row contain headers?
-    columns: ColumnMapping[];
-    skipRows?: number;     // Skip first N rows (e.g. title rows)
-
-    /** NEW: Pagination */
-    pagination?: PaginationConfig;
+    page: PageConfig;
 }
 
 export interface ScrapedRow {

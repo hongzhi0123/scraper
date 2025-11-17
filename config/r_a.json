@@ -1,0 +1,57 @@
+{
+    "url": "http://localhost:5500/sites/regafi/ais/page1.html",
+    "page": {
+        "tables": [{
+            "config": {
+                "tableSelector": ".table",
+                "hasHeader": true,
+                "skipRows": 0,
+                "columns": [
+                    {
+                        "header": "REGAFI identifier",
+                        "key": "id",
+                        "detailLink": true
+                    },
+                    {
+                        "header": "Name",
+                        "key": "name"
+                    },
+                    {
+                        "header": "National identifier (SIREN number for French entities)",
+                        "key": "natId"
+                    },
+                    {
+                        "header": "Category",
+                        "key": "category"
+                    },
+                    {
+                        "header": "Status",
+                        "key": "status"
+                    }
+                ],
+                "detail": {
+                    "parser": "generic",
+                    "tables": [{
+                        "key": "services",
+                        "config": {
+                            "tableSelector": "#zone_en_europe div[id^='zone_succ_DE'] table[summary^='List of activities']",
+                            "rowFilter": {
+                                "selector": "td:first-child img",
+                                "attr": "alt",
+                                "value": "Ticked activity"
+                            },
+                            "columns": [
+                                {
+                                    "index": -1
+                                }
+                            ]
+                        }
+                    }]
+                }
+            },
+            "pagination": {
+                "nextPageSelector": "a:contains('Next page')"
+            }
+        }]
+    }
+}
