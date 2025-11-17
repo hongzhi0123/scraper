@@ -1,0 +1,11 @@
+{
+    "url": "http://127.0.0.1:5500/sites/site2.html",
+    "tableSelector": "#stats-table",
+    "hasHeader": false,
+    "skipRows": 1,
+    "columns": [
+        { "index": 0, "key": "rank" },
+        { "index": 1, "key": "player" },
+        { "index": 2, "key": "score", "transform": "parseFloat" }
+    ]
+}

@@ -1,0 +1,56 @@
+{
+  "site1": [
+    {
+      "name": "Alice Johnson",
+      "age": 28,
+      "city": "Berlin",
+      "country": "Germany"
+    },
+    {
+      "name": "Bob Smith",
+      "age": 34,
+      "city": "Munich",
+      "country": "Germany"
+    },
+    {
+      "name": "Max Thieler",
+      "age": 19,
+      "city": "London",
+      "country": "UK"
+    },
+    {
+      "name": "Clara Müller",
+      "age": 22,
+      "city": "Hamburg",
+      "country": "Germany"
+    },
+    {
+      "name": "David Klein",
+      "age": 45,
+      "city": "Cologne",
+      "country": "Germany"
+    }
+  ],
+  "site2": [
+    {
+      "rank": "1",
+      "player": "Max Power",
+      "score": 98.7
+    },
+    {
+      "rank": "2",
+      "player": "Lena Storm",
+      "score": 97.3
+    },
+    {
+      "rank": "3",
+      "player": "Tom Blaze",
+      "score": 95.1
+    },
+    {
+      "rank": "4",
+      "player": "Sara Lightning",
+      "score": 94.8
+    }
+  ]
+}
