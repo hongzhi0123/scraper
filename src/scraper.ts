@@ -1,14 +1,14 @@
-import axios from 'axios';
+import { AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
-import { SiteConfig, ScrapedRow, ColumnMapping, TRANSFORMS, TableConfig } from './types.js';
+import { SiteConfig, ScrapedRow } from './types.js';
 import { parseTable } from './table.js';
 import { fetchDetail } from './detail.js';
-import { fetchHtml } from './utils.js';
+import { fetchHtml, randomDelay } from './utils.js';
 
 const __dirname = import.meta.dirname;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Ignore TLS errors
 
-async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
+async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<ScrapedRow[]> {
     const allRows: ScrapedRow[] = [];
     let currentUrl: string | null = config.url;
     let page = 1;
@@ -18,7 +18,7 @@ async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
 
         let html: string;
         try {
-            html = await fetchHtml(currentUrl);
+            html = await client.get(currentUrl);
         } catch (err: any) {
             console.error(`Failed to fetch ${currentUrl}:`, err?.message ?? err);
             break;
@@ -37,7 +37,7 @@ async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
             for (const dataRow of pageRows) {
                 if (dataRow.detailUrl) {
                     try {
-                        const detailObj = await fetchDetail(dataRow.detailUrl, table.config.detail);
+                        const detailObj = await fetchDetail(dataRow.detailUrl, table.config.detail, client);
                         // attach under `details` or merge fields directly—choose one
                         // Option A: keep association
                         dataRow.details = detailObj;
@@ -56,6 +56,11 @@ async function scrapeSite(config: SiteConfig): Promise<ScrapedRow[]> {
             const nextPageUrl = getNextPageUrl($, table.pagination.nextPageSelector, currentUrl);
 
             if (!nextPageUrl) break;
+
+            // Optional: delay to be polite
+            await randomDelay(1000, 5000);
+            // Set dynamic headers
+            client.defaults.headers['Referer'] = currentUrl;
 
             currentUrl = nextPageUrl;
             page++;

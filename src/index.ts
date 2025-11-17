@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ScrapedRow, SiteConfig } from './types.js';
 import { scrapeSite } from './scraper.js';
+import { getClient } from './utils.js';
 
 const __dirname = import.meta.dirname;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Ignore TLS errors
@@ -19,7 +20,7 @@ async function main() {
         const siteName = path.basename(file, '.json');
 
         try {
-            const data = await scrapeSite(config);
+            const data = await scrapeSite(config, getClient());
             allResults[siteName] = data;
             console.log(`✓ ${siteName}: ${data.length} rows`);
         } catch (err) {

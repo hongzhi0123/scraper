@@ -1,15 +1,20 @@
 import * as cheerio from 'cheerio';
-import { PageConfig, ScrapedRow, TableConfig, TRANSFORMS } from './types.js';
+import { PageConfig, ScrapedRow, TRANSFORMS } from './types.js';
 import { parseTable } from './table.js';
-import { fetchHtml, normalize } from './utils.js';
+import { normalize, randomDelay } from './utils.js';
+import { AxiosInstance } from 'axios';
 
 export async function fetchDetail(
     detailUrl: string,
-    detailConfig: PageConfig
+    detailConfig: PageConfig,
+    client: AxiosInstance
 ): Promise<Partial<ScrapedRow>> {
+    console.log(`  → Detail: ${detailUrl}`);
     const result: Partial<ScrapedRow> = {};
-    const html = await fetchHtml(detailUrl);
-    const $ = cheerio.load(html);
+
+    await randomDelay(500, 1500); // polite delay
+    const resp = await client.get(detailUrl);
+    const $ = cheerio.load(resp.data);
 
     // 1) extract simple attributes (if provided in config)
     if (detailConfig.fields) {
