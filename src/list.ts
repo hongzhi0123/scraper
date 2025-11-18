@@ -31,12 +31,12 @@ export async function parseList(
                 const $a = el.is('a') ? el : el.find('a').first();
                 if ($a.length) {
                     const href = $a.attr('href');
-                    if (href) detailUrl = new URL(href, baseUrl).href;
+                    if (href) row['detailUrl'] = new URL(href, baseUrl).href;
                 }
             }
 
-            if (col.transform && TRANSFORMS[col.transform]) {
-                try { transformValue(value, col.transform); } catch { }
+            if (col.transform) {
+                try { value = transformValue(value, col.transform); } catch { }
             }
 
             row[col.key] = value || (col.optional ? undefined : '');

@@ -79,8 +79,8 @@ export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, base
             }
 
             // Transform
-            if (col.transform && TRANSFORMS[col.transform]) {
-                try { transformValue(value, col.transform); } catch { }
+            if (col.transform) {
+                try { value = transformValue(value, col.transform); } catch { }
             }
 
             // assign: for array-form rows push into array, otherwise use key

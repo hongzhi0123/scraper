@@ -1,0 +1,67 @@
+{
+    "url": "http://localhost:5500/sites/site_transform/test-main.html",
+    "page": {
+        "tables": [
+            {
+                "config": {
+                    "type": "divs",
+                    "itemSelector": "div.card",
+                    "columns": [
+                        {
+                            "selector": "h3 a",
+                            "key": "name",
+                            "detailLink": true
+                        },
+                        {
+                            "selector": "div:nth-child(2)",
+                            "key": "licence"
+                        },
+                        {
+                            "selector": ".price",
+                            "key": "priceGross",
+                            "transform": "multiply(1.20)"
+                        },
+                        {
+                            "selector": "div:nth-child(4)",
+                            "key": "status"
+                        }
+                    ],
+                    "detail": {
+                        "parser": "generic",
+                        "tables": [
+                            {
+                                "key": "services",
+                                "config": {
+                                    "type": "table",
+                                    "tableSelector": "div.zone_succ table",
+                                    "rowFilter": {
+                                        "selector": "td:first-child img",
+                                        "attr": "alt",
+                                        "value": "Ticked activity"
+                                    },
+                                    "columns": [
+                                        {
+                                            "index": 1,
+                                            "key": "number"
+                                        },
+                                        {
+                                            "index": 2,
+                                            "key": "subNumber"
+                                        },
+                                        {
+                                            "index": -1,
+                                            "key": "description"
+                                        } 
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "pagination": {
+                    "nextPageSelector": "a:contains('Next page')"
+                }
+            }
+        ]
+    }
+}
