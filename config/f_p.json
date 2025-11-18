@@ -1,33 +1,31 @@
 {
-    "url": "http://localhost:5500/sites/site4/page2.html",
+    "url": "http://localhost:5500/sites/site_FMA/page1.html",
     "page": {
         "tables": [{
             "config": {
-                "type": "table",
-                "tableSelector": ".table",
-                "hasHeader": true,
-                "skipRows": 0,
+                "type": "divs",
+                "itemSelector": "div.card",
                 "columns": [
                     {
-                        "header": "REGAFI identifier",
-                        "key": "id",
-                        "detailLink": true
+                        "selector": "div.card-body li:nth-of-type(3) ul li:first-of-type",
+                        "key": "id"
                     },
                     {
-                        "header": "Name",
+                        "selector": "h3 button span",
                         "key": "name"
                     },
                     {
-                        "header": "National identifier (SIREN number for French entities)",
-                        "key": "natId"
+                        "selector": "div.card-body li:nth-of-type(2)",
+                        "key": "address"
                     },
                     {
-                        "header": "Category",
-                        "key": "category"
+                        "selector": "div.print-view-button-wrap a",
+                        "detailLink": true,
+                        "key": "detail"
                     },
                     {
-                        "header": "Status",
-                        "key": "status"
+                        "selector": "div.modal-body h5:contains('Deutschland') + p",
+                        "key": "roles"
                     }
                 ],
                 "detail": {

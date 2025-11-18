@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { ColumnMapping } from './types.js';
+import { ColumnMapping, TransformFunction, TRANSFORMS } from './types.js';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 
@@ -58,4 +58,40 @@ export function getClient(): AxiosInstance {
     client.defaults.headers['User-Agent'] = USER_AGENTS[0]; //randomUserAgent();
 
     return client;
+}
+
+export function transformValue(
+    value: string,
+    transformName: string) {
+    const match = transformName.match(/^([a-zA-Z]+)\((.*)\)$/);
+    if (!match) {
+        // No parentheses → old single-arg style
+        const fn = TRANSFORMS[transformName];
+        if (fn) value = (fn as (v: string) => any)(value);
+    } else {
+        const fnName = match[1];
+        const argsStr = match[2];
+
+        const fn = TRANSFORMS[fnName];
+        if (!fn) {
+            console.warn(`Unknown transform: ${fnName}`);
+        } else {
+            // Parse arguments safely
+            const rawArgs = argsStr.split(',').map(s => s.trim()).filter(Boolean);
+            const args = rawArgs.map(arg => {
+                if (!isNaN(Number(arg))) return Number(arg);
+                if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
+                    return arg.slice(1, -1);
+                }
+                return arg;
+            });
+
+            try {
+                value = (fn as TransformFunction)(value, ...args);
+            } catch (e) {
+                console.warn(`Transform failed: ${transformName}`, e);
+            }
+        }
+    }
+    return value;
 }

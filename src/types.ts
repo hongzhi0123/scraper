@@ -1,18 +1,64 @@
 // Built-in transforms
-export const TRANSFORMS: Record<string, (v: string) => any> = {
-    parseInt: (v: string) => parseInt(v.trim(), 10),
-    parseFloat: (v: string) => parseFloat(v.trim()),
+export const TRANSFORMS: Record<string, TransformFunction> = {
+    parseInt: (v: string) => parseInt(v.replace(/[^\d-]/g, '') || '0', 10),
+    parseFloat: (v: string) => parseFloat(v.replace(/[^\d.,-]/g, '').replace(',', '.') || '0'),
+
     trim: (v: string) => v.trim(),
-    lowercase: (v: string) => v.trim().toLowerCase(),
-};
+    lowercase: (v: string) => v.toLowerCase(),
+    uppercase: (v: string) => v.toUpperCase(),
+
+    // NEW: with parameters
+    multiply: (v: string | number, factor: number) => {
+        const num = typeof v === 'string' ? parseFloat(v.replace(/[^\d.-]/g, '') || '0') : v;
+        return num * factor;
+    },
+
+    divide: (v: string | number, divisor: number) => {
+        const num = typeof v === 'string' ? parseFloat(v.replace(/[^\d.-]/g, '') || '0') : v;
+        return divisor !== 0 ? num / divisor : 0;
+    },
+
+    dateFormat: (v: string, format: string) => {
+        // simple example – in real project use dayjs or date-fns
+        const date = new Date(v);
+        if (isNaN(date.getTime())) return v;
+
+        const map: Record<string, string> = {
+            'YYYY': date.getFullYear().toString(),
+            'MM': String(date.getMonth() + 1).padStart(2, '0'),
+            'DD': String(date.getDate()).padStart(2, '0'),
+        };
+        return format.replace(/YYYY|MM|DD/g, m => map[m]);
+    },
+
+    replace: (v: string, search: string, replacement: string) =>
+        v.replace(new RegExp(search, 'g'), replacement),
+
+    prefix: (v: string, prefix: string) => prefix + v,
+    suffix: (v: string, suffix: string) => v + suffix,
+} as const;
 
 export type TransformName = keyof typeof TRANSFORMS; // 'parseInt' | 'parseFloat' | ...
+// NEW TYPE – allows any args
+export type TransformFunction = (...args: any[]) => any;
+
+// export const TRANSFORMS: Record<string, TransformFunction> = { ... };
+
+export type ListType = 'table' | 'divs';
+
+export interface DivColumn {
+    selector: string;        // CSS selector inside the item
+    key: string;
+    transform?: string;
+    detailLink?: boolean;
+    optional?: boolean;
+}
 
 export interface ColumnMapping {
     header?: string;     // Match by header text (case-insensitive, trimmed)
     index?: number;      // Or match by column index (0-based)
     key: string;         // Output JSON key
-    transform?: TransformName; // ← Restrict to valid transform names (value: string) => any; // Optional transform
+    transform?: string; // ← Restrict to valid transform names (value: string) => any; // Optional transform
     detailLink?: boolean; // Whether this column contains the detail page link
 }
 
@@ -33,21 +79,26 @@ export interface RowFilter {
     value: string;        // exact match
 }
 
-export interface TableConfig {
+export interface ListConfig {
+    type: ListType;
+
+    // For tables
     tableSelector: string;
     hasHeader?: boolean;
     skipRows?: number;
     columns: ColumnMapping[];
     rowFilter?: RowFilter;
     detail?: PageConfig;
-    
+
+    // For divs
+    itemSelector?: string;
 }
 
 export interface PageConfig {
     fields: { key: string; selector: string; attr?: string; transform?: TransformName }[];
     tables: {
         key: string;
-        config: TableConfig;
+        config: ListConfig;
         pagination?: PaginationConfig;
     }[]
 }
@@ -59,7 +110,7 @@ export interface SiteConfig {
 
 export type ScrapedRow = {
     [key: string]: any;
-} 
+}
 
 // ScrapedObj can be either a ScrapedRow (normal case) or a plain object
 export type ScrapedObj = ScrapedRow | any;

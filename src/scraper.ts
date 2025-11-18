@@ -3,7 +3,8 @@ import * as cheerio from 'cheerio';
 import { SiteConfig, ScrapedRow } from './types.js';
 import { parseTable } from './table.js';
 import { fetchDetail } from './detail.js';
-import { fetchHtml, randomDelay } from './utils.js';
+import { randomDelay } from './utils.js';
+import { parseList } from './list.js';
 
 const __dirname = import.meta.dirname;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Ignore TLS errors
@@ -18,7 +19,8 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
 
         let html: string;
         try {
-            html = await client.get(currentUrl);
+            const response = await client.get(currentUrl);
+            html = response.data;
         } catch (err: any) {
             console.error(`Failed to fetch ${currentUrl}:`, err?.message ?? err);
             break;
@@ -27,7 +29,7 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
 
         const table = config.page.tables[0]; // assuming single table for main page
         // parse main page table rows
-        const pageRows = await parseTable($, table.config, currentUrl);
+        const pageRows = await parseList($, table.config, currentUrl);
         // append main page rows
         allRows.push(...pageRows);
 

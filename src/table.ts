@@ -1,9 +1,9 @@
 import * as cheerio from 'cheerio';
-import { ColumnMapping, TransformName, RowFilter, TRANSFORMS, TableConfig, ScrapedRow, ScrapedObj } from './types.js';
-import { findColumnIndex, normalize } from './utils.js';
+import { ColumnMapping, TRANSFORMS, ListConfig, ScrapedRow, ScrapedObj } from './types.js';
+import { findColumnIndex, normalize, transformValue } from './utils.js';
 
 // parse a table from a cheerio instance, return plain data rows
-export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, baseUrl?: string): Promise<ScrapedObj[]> {
+export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, baseUrl?: string): Promise<ScrapedObj[]> {
     const table = $(config.tableSelector);
     if (!table.length) return [];
 
@@ -80,7 +80,7 @@ export async function parseTable($: cheerio.CheerioAPI, config: TableConfig, bas
 
             // Transform
             if (col.transform && TRANSFORMS[col.transform]) {
-                try { value = TRANSFORMS[col.transform](value); } catch { }
+                try { transformValue(value, col.transform); } catch { }
             }
 
             // assign: for array-form rows push into array, otherwise use key
