@@ -1,7 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
 import { ColumnMapping, TransformFunction, TRANSFORMS } from './types.js';
-import { wrapper } from 'axios-cookiejar-support';
-import { CookieJar } from 'tough-cookie';
 
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, Bookmarks, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -25,7 +23,7 @@ export function findColumnIndex(headers: string[], mapping: ColumnMapping): numb
     if (mapping.index !== undefined) return mapping.index;
     if (mapping.header !== undefined) {
         const norm = normalize(mapping.header);
-        return headers.findIndex(h => normalize(h) === norm);
+        return headers.findIndex(h => normalize(h).toUpperCase() === norm.toUpperCase());
     }
     return null;
 }
@@ -39,21 +37,17 @@ export function findColumnIndex(headers: string[], mapping: ColumnMapping): numb
 // }
 
 export function getClient(): AxiosInstance {
-    const jar = new CookieJar();
-    const client: AxiosInstance = wrapper(
-        axios.create({
-            jar,
-            timeout: 15000,
-            headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-            },
-            maxRedirects: 5,
-        })
-    );
+    const client: AxiosInstance = axios.create({
+        timeout: 15000,
+        headers: {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        },
+        maxRedirects: 5,
+    });
 
     client.defaults.headers['User-Agent'] = USER_AGENTS[0]; //randomUserAgent();
 

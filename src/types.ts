@@ -55,11 +55,13 @@ export interface DivColumn {
 }
 
 export interface ColumnMapping {
+    selector?: string;
     header?: string;     // Match by header text (case-insensitive, trimmed)
     index?: number;      // Or match by column index (0-based)
-    key: string;         // Output JSON key
+    key?: string;         // Output JSON key
     transform?: string; // ← Restrict to valid transform names (value: string) => any; // Optional transform
     detailLink?: boolean; // Whether this column contains the detail page link
+    optional?: boolean;
 }
 
 export interface PaginationConfig {
