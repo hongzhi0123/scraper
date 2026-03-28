@@ -3,12 +3,16 @@ import * as path from 'path';
 import { ScrapedRow, SiteConfig } from './types.js';
 import { scrapeSite } from './scraper.js';
 import { getClient } from './utils.js';
+import { createCachingClient } from './cache.js';
 
 const __dirname = import.meta.dirname;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Ignore TLS errors
 
 // Main function
 async function main() {
+    const useCache = process.argv.includes('--cache');
+    if (useCache) console.log('Running in cache mode (no network requests)\n');
+
     const configDir = path.join(__dirname, '../config');
     const files = fs.readdirSync(configDir).filter(f => f.endsWith('.json'));
 
@@ -20,7 +24,8 @@ async function main() {
         const siteName = path.basename(file, '.json');
 
         try {
-            const data = await scrapeSite(config, getClient());
+            const client = createCachingClient(getClient(), { useCache });
+            const data = await scrapeSite(config, client);
             allResults[siteName] = data;
             console.log(`✓ ${siteName}: ${data.length} rows`);
         } catch (err) {
