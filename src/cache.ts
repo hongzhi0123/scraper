@@ -58,7 +58,7 @@ export function createCachingClient(
 
     const originalGet = client.get.bind(client);
 
-    client.get = async function cachedGet(url: string, config?: any): Promise<any> {
+    client.get = (async function cachedGet(url: string, config?: Record<string, unknown>) {
         const relativePath = urlToFilename(url);
         const filepath = path.join(cacheDir, relativePath);
 
@@ -81,7 +81,7 @@ export function createCachingClient(
         fs.writeFileSync(filepath, response.data, 'utf-8');
         console.log(`  [saved] ${relativePath}`);
         return response;
-    } as any;
+    }) as AxiosInstance['get'];
 
     return client;
 }

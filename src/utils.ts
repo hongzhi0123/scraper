@@ -56,23 +56,23 @@ export function getClient(): AxiosInstance {
 
 export function transformValue(
     value: string,
-    transformName: string) {
+    transformName: string): string | number {
     const match = transformName.match(/^([a-zA-Z]+)\((.*)\)$/);
     if (!match) {
         // No parentheses → old single-arg style
-        const fn = TRANSFORMS[transformName];
-        if (fn) value = (fn as (v: string) => any)(value);
+        const fn = TRANSFORMS[transformName as keyof typeof TRANSFORMS] as TransformFunction | undefined;
+        if (fn) return fn(value);
     } else {
         const fnName = match[1];
         const argsStr = match[2];
 
-        const fn = TRANSFORMS[fnName];
+        const fn = TRANSFORMS[fnName as keyof typeof TRANSFORMS] as TransformFunction | undefined;
         if (!fn) {
             console.warn(`Unknown transform: ${fnName}`);
         } else {
             // Parse arguments safely
             const rawArgs = argsStr.split(',').map(s => s.trim()).filter(Boolean);
-            const args = rawArgs.map(arg => {
+            const args: (string | number)[] = rawArgs.map(arg => {
                 if (!isNaN(Number(arg))) return Number(arg);
                 if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
                     return arg.slice(1, -1);
@@ -81,7 +81,7 @@ export function transformValue(
             });
 
             try {
-                value = (fn as TransformFunction)(value, ...args);
+                return fn(value, ...args);
             } catch (e) {
                 console.warn(`Transform failed: ${transformName}`, e);
             }

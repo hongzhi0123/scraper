@@ -1,5 +1,5 @@
 // Built-in transforms
-export const TRANSFORMS: Record<string, TransformFunction> = {
+export const TRANSFORMS = {
     parseInt: (v: string) => parseInt(v.replace(/[^\d-]/g, '') || '0', 10),
     parseFloat: (v: string) => parseFloat(v.replace(/[^\d.,-]/g, '').replace(',', '.') || '0'),
 
@@ -36,13 +36,12 @@ export const TRANSFORMS: Record<string, TransformFunction> = {
 
     prefix: (v: string, prefix: string) => prefix + v,
     suffix: (v: string, suffix: string) => v + suffix,
-} as const;
+};
 
 export type TransformName = keyof typeof TRANSFORMS; // 'parseInt' | 'parseFloat' | ...
-// NEW TYPE – allows any args
-export type TransformFunction = (...args: any[]) => any;
+// Callable signature for dynamic dispatch (used in transformValue)
+export type TransformFunction = (value: string | number, ...args: (string | number)[]) => string | number;
 
-// export const TRANSFORMS: Record<string, TransformFunction> = { ... };
 
 export type ListType = 'table' | 'divs';
 
@@ -110,9 +109,11 @@ export interface SiteConfig {
     page: PageConfig;
 }
 
+export type ScrapedValue = string | number;
+
 export type ScrapedRow = {
-    [key: string]: any;
+    [key: string]: ScrapedValue | ScrapedRow[] | ScrapedRow | undefined;
 }
 
-// ScrapedObj can be either a ScrapedRow (normal case) or a plain object
-export type ScrapedObj = ScrapedRow | any;
+// ScrapedObj can be either a ScrapedRow (keyed object) or a scalar value (single-column mode)
+export type ScrapedObj = ScrapedRow | ScrapedValue;

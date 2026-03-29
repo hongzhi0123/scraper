@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { PageConfig, ScrapedRow, TRANSFORMS } from './types.js';
+import { PageConfig, ScrapedRow, TransformFunction, TRANSFORMS } from './types.js';
 import { parseTable } from './table.js';
 import { normalize, randomDelay } from './utils.js';
 import { AxiosInstance } from 'axios';
@@ -26,8 +26,11 @@ export async function fetchDetail(
             } else {
                 result[field.key] = normalize(el.text());
             }
-            if (field.transform && TRANSFORMS[field.transform]) {
-                try { result[field.key] = TRANSFORMS[field.transform](result[field.key] as string); } catch { }
+            if (field.transform) {
+                const fn = TRANSFORMS[field.transform] as TransformFunction | undefined;
+                if (fn) {
+                    try { result[field.key] = fn(result[field.key] as string); } catch { }
+                }
             }
         }
     }
@@ -38,9 +41,9 @@ export async function fetchDetail(
             // parseTable returns ScrapedRow[]
             const parsed = await parseTable($, tcfg.config, detailUrl);
             // store under a key derived from the table config (use tcfg.key or tableSelector)
-            const key = (tcfg as any).key || tcfg.config.tableSelector;
+            const key = tcfg.key || tcfg.config.tableSelector;
             // attach table as an array
-            result[key] = parsed;
+            result[key] = parsed as ScrapedRow[];
         }
     };
 

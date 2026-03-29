@@ -53,7 +53,7 @@ export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, base
 
         // If there's exactly one resolved column and it has no key, use array-form row
         const singleItemNoKey = columnIndices.length === 1 && (columnIndices[0].key === undefined || columnIndices[0].key === '');
-        let dataRow: ScrapedObj = {};
+        let dataRow: ScrapedRow = {};
 
         for (const col of columnIndices) {
             let cellIndex = col.index;
@@ -65,7 +65,7 @@ export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, base
             }
 
             let cell = cells[cellIndex];
-            let value = cell ? normalize($(cell).text()) : '';
+            let value: string | number = cell ? normalize($(cell).text()) : '';
 
             // === EXTRACT DETAIL LINK FROM THIS CELL ===
             if (col.detailLink) {
@@ -85,15 +85,16 @@ export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, base
 
             // assign: for array-form rows push into array, otherwise use key
             if (singleItemNoKey) {
-                dataRow = value;
+                dataRows.push(value);
+                break;
             } else {
                 // col.key should exist here; fallback to index string if not
                 const key = (col.key === undefined || col.key === '') ? String(cellIndex) : col.key;
-                (dataRow as ScrapedRow)[key] = value;
+                dataRow[key] = value;
             }
         }
 
-        if (Object.values(dataRow).some(v => v !== '' && v !== null)) {
+        if (!singleItemNoKey && Object.values(dataRow).some(v => v !== '' && v !== null)) {
             dataRows.push(dataRow);
         }
     }

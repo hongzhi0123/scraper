@@ -21,8 +21,8 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
         try {
             const response = await client.get(currentUrl);
             html = response.data;
-        } catch (err: any) {
-            console.error(`Failed to fetch ${currentUrl}:`, err?.message ?? err);
+        } catch (err: unknown) {
+            console.error(`Failed to fetch ${currentUrl}:`, err instanceof Error ? err.message : err);
             break;
         }
         const $ = cheerio.load(html);
@@ -37,7 +37,7 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
         // You may want to do this with a concurrency limit (see note below)
         if (table.config.detail) {
             for (const dataRow of pageRows) {
-                if (dataRow.detailUrl) {
+                if (dataRow.detailUrl && typeof dataRow.detailUrl === 'string') {
                     try {
                         const detailObj = await fetchDetail(dataRow.detailUrl, table.config.detail, client);
                         // attach under `details` or merge fields directly—choose one
@@ -45,9 +45,9 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
                         dataRow.details = detailObj;
                         // Option B: merge fields into row (be careful with collisions)
                         // Object.assign(dataRow, detailObj);
-                    } catch (err: any) {
+                    } catch (err: unknown) {
                         // handle or log; keep going
-                        console.warn('Failed to fetch detail for', dataRow.detailUrl, err?.message ?? err);
+                        console.warn('Failed to fetch detail for', dataRow.detailUrl, err instanceof Error ? err.message : err);
                         dataRow.details = [];
                     }
                 }
@@ -66,6 +66,8 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
 
             currentUrl = nextPageUrl;
             page++;
+        } else {
+            break;
         }
     }
 
