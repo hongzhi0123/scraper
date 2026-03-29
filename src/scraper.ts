@@ -27,27 +27,20 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
         }
         const $ = cheerio.load(html);
 
-        const table = config.page.tables[0]; // assuming single table for main page
-        // parse main page table rows
+        const table = config.page.tables[0];
         const pageRows = await parseList($, table.config, currentUrl);
-        // append main page rows
-        allRows.push(...pageRows);
+        const objectRows = pageRows.filter((r): r is ScrapedRow => typeof r === 'object' && r !== null);
+        allRows.push(...objectRows);
 
-        // For each row with a detailUrl, fetch the detail page and attach details
-        // You may want to do this with a concurrency limit (see note below)
         if (table.config.detail) {
-            for (const dataRow of pageRows) {
-                if (dataRow.detailUrl) {
+            for (const dataRow of objectRows) {
+                const detailUrl = dataRow.detailUrl as string | undefined;
+                if (detailUrl) {
                     try {
-                        const detailObj = await fetchDetail(dataRow.detailUrl, table.config.detail, client);
-                        // attach under `details` or merge fields directly—choose one
-                        // Option A: keep association
+                        const detailObj = await fetchDetail(detailUrl, table.config.detail, client);
                         dataRow.details = detailObj;
-                        // Option B: merge fields into row (be careful with collisions)
-                        // Object.assign(dataRow, detailObj);
                     } catch (err: any) {
-                        // handle or log; keep going
-                        console.warn('Failed to fetch detail for', dataRow.detailUrl, err?.message ?? err);
+                        console.warn('Failed to fetch detail for', detailUrl, err?.message ?? err);
                         dataRow.details = [];
                     }
                 }
@@ -66,6 +59,8 @@ async function scrapeSite(config: SiteConfig, client: AxiosInstance): Promise<Sc
 
             currentUrl = nextPageUrl;
             page++;
+        } else {
+            break;
         }
     }
 

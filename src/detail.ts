@@ -38,11 +38,10 @@ export async function fetchDetail(
             // parseTable returns ScrapedRow[]
             const parsed = await parseTable($, tcfg.config, detailUrl);
             // store under a key derived from the table config (use tcfg.key or tableSelector)
-            const key = (tcfg as any).key || tcfg.config.tableSelector;
-            // attach table as an array
+            const key = tcfg.key || tcfg.config.tableSelector;
             result[key] = parsed;
         }
-    };
+    }
 
     return result;
 }

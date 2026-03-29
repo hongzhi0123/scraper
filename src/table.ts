@@ -1,9 +1,9 @@
 import * as cheerio from 'cheerio';
-import { ColumnMapping, TRANSFORMS, ListConfig, ScrapedRow, ScrapedObj } from './types.js';
+import { ColumnMapping, ListConfig, ScrapedRow, ScrapedRowData } from './types.js';
 import { findColumnIndex, normalize, transformValue } from './utils.js';
 
 // parse a table from a cheerio instance, return plain data rows
-export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, baseUrl?: string): Promise<ScrapedObj[]> {
+export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, baseUrl?: string): Promise<ScrapedRowData[]> {
     const table = $(config.tableSelector);
     if (!table.length) return [];
 
@@ -46,54 +46,67 @@ export async function parseTable($: cheerio.CheerioAPI, config: ListConfig, base
     }
 
     // === Extract data ===
-    const dataRows: ScrapedObj[] = [];
+    const dataRows: ScrapedRowData[] = [];
 
     for (const row of tableRows) {
         const cells = $(row).find('td, th').toArray();
 
-        // If there's exactly one resolved column and it has no key, use array-form row
+        // If there's exactly one resolved column and it has no key, use scalar form
         const singleItemNoKey = columnIndices.length === 1 && (columnIndices[0].key === undefined || columnIndices[0].key === '');
-        let dataRow: ScrapedObj = {};
 
-        for (const col of columnIndices) {
+        if (singleItemNoKey) {
+            const col = columnIndices[0];
             let cellIndex = col.index;
 
-            // Support negative indices (from the right)
             if (cellIndex < 0) {
-                cellIndex = cells.length + cellIndex; // -1 → length-1, -2 → length-2, etc.
-                if (cellIndex < 0) continue; // out of bounds → skip (or set empty)
+                cellIndex = cells.length + cellIndex;
+                if (cellIndex < 0) continue;
             }
 
-            let cell = cells[cellIndex];
+            const cell = cells[cellIndex];
             let value = cell ? normalize($(cell).text()) : '';
 
-            // === EXTRACT DETAIL LINK FROM THIS CELL ===
-            if (col.detailLink) {
-                const $link = $(cell).find('a').first();
-                if ($link.length) {
-                    let href = $link.attr('href');
-                    if (href) {
-                        dataRow['detailUrl'] = new URL(href, baseUrl).href;
-                    }
-                }
-            }
-
-            // Transform
             if (col.transform) {
                 try { value = transformValue(value, col.transform); } catch { }
             }
 
-            // assign: for array-form rows push into array, otherwise use key
-            if (singleItemNoKey) {
-                dataRow = value;
-            } else {
-                // col.key should exist here; fallback to index string if not
-                const key = (col.key === undefined || col.key === '') ? String(cellIndex) : col.key;
-                (dataRow as ScrapedRow)[key] = value;
-            }
+            dataRows.push(value);
+            continue;
         }
 
-        if (Object.values(dataRow).some(v => v !== '' && v !== null)) {
+        // Object form
+        const dataRow: ScrapedRow = {};
+        let isEmpty = true;
+
+        for (const col of columnIndices) {
+            let cellIndex = col.index;
+
+            if (cellIndex < 0) {
+                cellIndex = cells.length + cellIndex;
+                if (cellIndex < 0) continue;
+            }
+
+            const cell = cells[cellIndex];
+            let value = cell ? normalize($(cell).text()) : '';
+
+            if (col.detailLink) {
+                const $link = $(cell).find('a').first();
+                if ($link.length) {
+                    const href = $link.attr('href');
+                    if (href) dataRow['detailUrl'] = new URL(href, baseUrl).href;
+                }
+            }
+
+            if (col.transform) {
+                try { value = transformValue(value, col.transform); } catch { }
+            }
+
+            const key = (col.key === undefined || col.key === '') ? String(cellIndex) : col.key;
+            dataRow[key] = value;
+            if (value !== '' && value !== null) isEmpty = false;
+        }
+
+        if (!isEmpty) {
             dataRows.push(dataRow);
         }
     }

@@ -1,5 +1,4 @@
-// Built-in transforms
-export const TRANSFORMS: Record<string, TransformFunction> = {
+export const TRANSFORMS: Record<string, (...args: any[]) => any> = {
     parseInt: (v: string) => parseInt(v.replace(/[^\d-]/g, '') || '0', 10),
     parseFloat: (v: string) => parseFloat(v.replace(/[^\d.,-]/g, '').replace(',', '.') || '0'),
 
@@ -7,7 +6,6 @@ export const TRANSFORMS: Record<string, TransformFunction> = {
     lowercase: (v: string) => v.toLowerCase(),
     uppercase: (v: string) => v.toUpperCase(),
 
-    // NEW: with parameters
     multiply: (v: string | number, factor: number) => {
         const num = typeof v === 'string' ? parseFloat(v.replace(/[^\d.-]/g, '') || '0') : v;
         return num * factor;
@@ -19,7 +17,6 @@ export const TRANSFORMS: Record<string, TransformFunction> = {
     },
 
     dateFormat: (v: string, format: string) => {
-        // simple example – in real project use dayjs or date-fns
         const date = new Date(v);
         if (isNaN(date.getTime())) return v;
 
@@ -38,53 +35,38 @@ export const TRANSFORMS: Record<string, TransformFunction> = {
     suffix: (v: string, suffix: string) => v + suffix,
 } as const;
 
-export type TransformName = keyof typeof TRANSFORMS; // 'parseInt' | 'parseFloat' | ...
-// NEW TYPE – allows any args
+export type TransformName = keyof typeof TRANSFORMS;
 export type TransformFunction = (...args: any[]) => any;
-
-// export const TRANSFORMS: Record<string, TransformFunction> = { ... };
 
 export type ListType = 'table' | 'divs';
 
-export interface DivColumn {
-    selector: string;        // CSS selector inside the item
-    key: string;
+export interface BaseColumn {
+    selector?: string;
+    key?: string;
     transform?: string;
     detailLink?: boolean;
     optional?: boolean;
 }
 
-export interface ColumnMapping {
-    selector?: string;
-    header?: string;     // Match by header text (case-insensitive, trimmed)
-    index?: number;      // Or match by column index (0-based)
-    key?: string;         // Output JSON key
-    transform?: string; // ← Restrict to valid transform names (value: string) => any; // Optional transform
-    detailLink?: boolean; // Whether this column contains the detail page link
-    optional?: boolean;
+export interface ColumnMapping extends BaseColumn {
+    header?: string;
+    index?: number;
 }
 
 export interface PaginationConfig {
-    /** CSS selector for the <a> element that links to the next page */
     nextPageSelector: string;
-
-    /**
-     * Optional: attribute that contains the URL.
-     * Default: "href"
-     */
     hrefAttr?: string;
 }
 
 export interface RowFilter {
-    selector: string;     // CSS selector relative to <tr>
-    attr: string;         // e.g. "alt", "class", "data-*"
-    value: string;        // exact match
+    selector: string;
+    attr: string;
+    value: string;
 }
 
 export interface ListConfig {
     type: ListType;
 
-    // For tables
     tableSelector: string;
     hasHeader?: boolean;
     skipRows?: number;
@@ -92,17 +74,17 @@ export interface ListConfig {
     rowFilter?: RowFilter;
     detail?: PageConfig;
 
-    // For divs
     itemSelector?: string;
 }
 
 export interface PageConfig {
-    fields: { key: string; selector: string; attr?: string; transform?: TransformName }[];
+    parser?: string;
+    fields: { key: string; selector: string; attr?: string; transform?: string }[];
     tables: {
         key: string;
         config: ListConfig;
         pagination?: PaginationConfig;
-    }[]
+    }[];
 }
 
 export interface SiteConfig {
@@ -110,9 +92,6 @@ export interface SiteConfig {
     page: PageConfig;
 }
 
-export type ScrapedRow = {
-    [key: string]: any;
-}
+export type ScrapedRow = Record<string, unknown>;
 
-// ScrapedObj can be either a ScrapedRow (normal case) or a plain object
-export type ScrapedObj = ScrapedRow | any;
+export type ScrapedRowData = ScrapedRow | string | number | null;

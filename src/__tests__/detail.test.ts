@@ -35,7 +35,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result).toMatchObject({
         name: 'Acme Corp',
@@ -62,7 +62,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.logoUrl).toBe('/images/logo.png');
     });
@@ -86,7 +86,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.revenue).toBe(1234567);
     });
@@ -106,7 +106,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.name).toBe('');
     });
@@ -134,7 +134,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.description).toBe('Multi line description');
     });
@@ -175,7 +175,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.officers).toBeDefined();
       expect(Array.isArray(result.officers)).toBe(true);
@@ -233,7 +233,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.addresses).toHaveLength(1);
       expect(result.contacts).toHaveLength(1);
@@ -276,7 +276,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.name).toBe('Acme Corp');
       expect(result.locations).toHaveLength(1);
@@ -301,7 +301,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
       expect(result.available).toBe('Value');
       expect(result.missing).toBe('');
@@ -322,9 +322,8 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/detail/1', config, client);
+      const result = (await fetchDetail('http://example.com/detail/1', config, client)) as Record<string, any>;
 
-      // Should not crash, should have some value
       expect(result.value).toBeDefined();
     });
 
@@ -397,7 +396,7 @@ describe('fetchDetail', () => {
       };
 
       const client = mockedAxios.create();
-      const result = await fetchDetail('http://example.com/product/123', config, client);
+      const result = (await fetchDetail('http://example.com/product/123', config, client)) as Record<string, any>;
 
       expect(result.specs).toHaveLength(1);
       expect(result.specs[0]).toMatchObject({ property: 'Weight', value: '500g' });
